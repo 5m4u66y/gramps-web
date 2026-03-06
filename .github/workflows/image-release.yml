@@ -2,10 +2,10 @@ name: Build Docker release images
 
 on:
   workflow_dispatch:
-  release:
-    types:
-      - created
-
+    inputs:
+      version:
+        description: 'Docker image version/tag'
+        required: true
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -36,29 +36,15 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Set release version
-        if: github.event_name == 'release'
-        run: |
-          TAG=${{ github.event.release.tag_name }}
-          VERSION=${TAG#v}
-          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+      - name: Set version
+        run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
       - name: tag and push release image
-        if: github.event_name == 'release'
         uses: docker/build-push-action@v5
         with:
           context: .
           file: Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
-          tags: ghcr.io/gramps-project/grampsweb:${{ env.VERSION }},ghcr.io/gramps-project/grampsweb:latest
+          tags: ghcr.io/5m4u66y/grampsweb:${{ env.VERSION }},ghcr.io/5m4u66y/grampsweb:latest
       - name: Clean up dangling images
         run: docker image prune -f -a
-      - name: tag and push release nginx image
-        if: github.event_name == 'release'
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: Dockerfile.nginx
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ghcr.io/gramps-project/grampsjs:${{ env.VERSION }},ghcr.io/gramps-project/grampsjs:latest
